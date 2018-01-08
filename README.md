@@ -13,7 +13,7 @@
 
 ## Tensorflow Object Detection API
 ### 安裝
-參考這個[youtube]("https://www.youtube.com/playlist?list=PLQVvvaa0QuDcNK5GeCQnxYnSSaar2tpku)
+參考這個[youtube](https://www.youtube.com/playlist?list=PLQVvvaa0QuDcNK5GeCQnxYnSSaar2tpku)
 ### 資料
 將`training`這個文件夾移到`{你的到models目錄}/research/objection_detection/`這個目錄下
 
