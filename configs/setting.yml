@@ -1,0 +1,18 @@
+# basic file setting
+config:
+  synth_hand_path: './data/DeepQ-Synth-Hand/data/'
+  real_hand_path: './data/DeepQ-Vivepaper/data/'
+
+  synth_image_type: '.png'
+  real_image_type: '.png'
+
+  load_min: True
+  min_size: 100
+
+# training optimizer hyper parameters
+hp:
+  lr: 0.01
+  batch_size: 64
+  epochs: 200
+
+  # model configs
