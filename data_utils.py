@@ -19,15 +19,15 @@ def generate_paths_0():
     global base_path_list, prefix_list
     """for synth data"""
     for i in range(2):
-        base_path = os.path.join(DATA_PATH, "DeepQ-Synth-Hand-0{}\\data".format(i + 1))
+        base_path = os.path.join(DATA_PATH, "DeepQ-Synth-Hand-0{}/data".format(i + 1))
         for j in range(5):
             base_path_list.append(os.path.join(base_path, "s00{}".format(i * 5 + j)))
             prefix_list.append("{}".format(i * 5 + j))
 
     """for real data"""
 
-    base_path_list += [os.path.join(DATA_PATH, "DeepQ-Vivepaper\\data\\air"),
-                       os.path.join(DATA_PATH, "DeepQ-Vivepaper\\data\\book")]
+    base_path_list += [os.path.join(DATA_PATH, "DeepQ-Vivepaper/data/air"),
+                       os.path.join(DATA_PATH, "DeepQ-Vivepaper/data/book")]
     prefix_list += [10, 11]
 
 
@@ -38,7 +38,7 @@ def generate_paths_1():
     """
     global base_path_list, prefix_list
 
-    base_path = os.path.join(DATA_PATH, "DeepQ-Synth-Hand\\data")
+    base_path = os.path.join(DATA_PATH, "DeepQ-Synth-Hand/data")
 
     """for synth data"""
     for i in range(10):
@@ -47,8 +47,8 @@ def generate_paths_1():
 
     """for real data"""
 
-    base_path_list += [os.path.join(DATA_PATH, "DeepQ-Vivepaper\\data\\air"),
-                       os.path.join(DATA_PATH, "DeepQ-Vivepaper\\data\\book")]
+    base_path_list += [os.path.join(DATA_PATH, "DeepQ-Vivepaper/data/air"),
+                       os.path.join(DATA_PATH, "DeepQ-Vivepaper/data/book")]
     prefix_list += [10, 11]
 
 
