@@ -26,7 +26,8 @@ def generate_paths_0():
 
     """for real data"""
 
-    base_path_list += ["D:\\data\\htc\\DeepQ-Vivepaper\\data\\air", "D:\\data\\htc\\DeepQ-Vivepaper\\data\\book"]
+    base_path_list += [os.path.join(DATA_PATH, "DeepQ-Vivepaper\\data\\air"),
+                       os.path.join(DATA_PATH, "DeepQ-Vivepaper\\data\\book")]
     prefix_list += [10, 11]
 
 
@@ -46,7 +47,8 @@ def generate_paths_1():
 
     """for real data"""
 
-    base_path_list += ["D:\\data\\htc\\DeepQ-Vivepaper\\data\\air", "D:\\data\\htc\\DeepQ-Vivepaper\\data\\book"]
+    base_path_list += [os.path.join(DATA_PATH, "DeepQ-Vivepaper\\data\\air"),
+                       os.path.join(DATA_PATH, "DeepQ-Vivepaper\\data\\book")]
     prefix_list += [10, 11]
 
 
