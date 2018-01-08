@@ -104,3 +104,5 @@ ENV/
 .idea/
 */outputs/*
 */data/*
+*/training/train/*
+*/training/eval/*
