@@ -10,7 +10,7 @@ import pylab as plt
 import skimage.io
 
 PATH_TO_CKPT = './models/hand_detection/frozen_inference_graph.pb'
-PATH_TO_TEST_IMAGES_DIR = './data/'
+PATH_TO_TEST_IMAGES_DIR = './test_images/'
 TEST_IMAGE_PATHS = [
     os.path.join(PATH_TO_TEST_IMAGES_DIR, filename) for filename in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
 
