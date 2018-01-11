@@ -32,7 +32,7 @@ for p in img_paths:
 	for h in label['bbox']:
 		x0,y0,x1,y1 = label['bbox'][h]
 		hf = 'R' if h=='L' else 'L'
-		label_new['bbox'][hf] = [width-x1+1,y0,width-x0+1,y1]
+		label_new['bbox'][hf] = [width-x1,y0,width-x0,y1]
 	
 	img.transpose(Image.FLIP_LEFT_RIGHT).save(flipped_img_dir+'img_'+img_id+'_f.png','PNG')
 	with open(flipped_label_dir+'label_'+img_id+'_f.json','w') as f:
