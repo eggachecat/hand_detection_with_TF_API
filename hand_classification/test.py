@@ -1,6 +1,9 @@
 import keras
 import skimage.io
 import numpy as np
+import scipy.stats as stats
+
+import pylab as plt
 
 num_classes = 2
 model_name = "../models/hand_classification/hand_classification_model.h5"
@@ -30,4 +33,57 @@ def test_real_data():
     print('Test accuracy:', scores[1])
 
 
-test_real_data()
+def predict_real_hand():
+    x_data, _ = load_data("./data/real/*.jpg", False)
+    x_data = x_data.astype('float32')
+    x_data /= 255
+
+    outputs = model.predict(x_data)
+    print(outputs)
+    return outputs
+
+
+def predict_no_hand():
+    x_data, _ = load_data("./data/no-hands/*.jpg", False)
+    x_data = x_data.astype('float32')
+    x_data /= 255
+
+    outputs = model.predict(x_data)
+    print(outputs)
+    return outputs
+
+
+def draw_max_distribution():
+    n_data = 100
+    n_bins = 10
+
+    real_hands_scores = sorted(np.max(predict_real_hand(), axis=1)[:n_data])
+    no_hands_scores = sorted(np.max(predict_no_hand(), axis=1)[:n_data])
+    colors = ['red', 'tan']
+    labels = ['with hand', 'without hand']
+    data_to_draw = np.vstack((real_hands_scores, no_hands_scores))
+    print(data_to_draw)
+    plt.hist(data_to_draw.T, bins=n_bins, color=colors, label=labels)
+    plt.legend(prop={'size': 10})
+    plt.title("Max score of the  scores of two classes")
+    plt.show()  # use may also need add this
+
+
+def draw_difference_distribution():
+    n_data = 100
+    n_bins = 10
+
+    real_hands_scores = sorted([np.abs(x[0] - x[1]) for x in predict_real_hand()[:n_data]])
+    no_hands_scores = sorted([np.abs(x[0] - x[1]) for x in predict_no_hand()[:n_data]])
+    colors = ['red', 'tan']
+    labels = ['with hand', 'without hand']
+    data_to_draw = np.vstack((real_hands_scores, no_hands_scores))
+    print(data_to_draw)
+    plt.hist(data_to_draw.T, bins=n_bins, color=colors, label=labels)
+    plt.legend(prop={'size': 10})
+    plt.title("Difference between scores of two classes")
+    plt.show()  # use may also need add this
+
+
+draw_difference_distribution()
+# predict_real_hand()
