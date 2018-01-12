@@ -144,14 +144,19 @@ def infer_phase_1():
 
                 threshold = np.sort(scores, axis=None)[-3]
                 threshold = threshold if threshold > 0.01 else 0.01
+                im_width, im_height = image.size
+
                 for i in range(boxes.shape[1]):
                     box = boxes[0][i]
                     if scores[0][i] > threshold:
                         ymin, xmin, ymax, xmax = box
                         class_ = INT_TO_CLASS[classes[0][i]]
                         draw_bounding_box_on_image(image, ymin, xmin, ymax, xmax, color=CLASS_TO_COLOR[class_],
-                                                   display_str_list=[class_ + ": {}".format(scores[0][i])])
-                image.show()
+                                                   display_str_list=[class_ + ": {0:.3f}".format(scores[0][i])])
+
+                        (left, right, top, bottom) = (xmin * im_width, xmax * im_width,
+                                                      ymin * im_height, ymax * im_height)
+                        image.crop((left, top, right, bottom)).show()
 
 
 if __name__ == "__main__":
