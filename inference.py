@@ -8,11 +8,13 @@ import PIL.ImageDraw as ImageDraw
 import PIL.ImageFont as ImageFont
 import pylab as plt
 import skimage.io
+import keras
+
+LOCAL = True
 
 PATH_TO_CKPT = './models/hand_detection/frozen_inference_graph.pb'
-PATH_TO_TEST_IMAGES_DIR = './test_images/'
-TEST_IMAGE_PATHS = [
-    os.path.join(PATH_TO_TEST_IMAGES_DIR, filename) for filename in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
+TEST_IMAGE_PATHS = None
+ANS_WRITER = None
 
 INT_TO_CLASS = {
     1: "L",
@@ -23,6 +25,8 @@ CLASS_TO_COLOR = {
     "L": "green",
     "R": "red"
 }
+
+AREA_THRESHOLD = 0.5
 
 
 def draw_bounding_box_on_image(image,
@@ -102,7 +106,21 @@ def load_image_into_numpy_array(image):
         (im_height, im_width, 3)).astype(np.uint8)
 
 
-def infer_phase_1():
+def cal_area(a, b=None):
+    if b is None:
+        return (a[0] - a[2]) * (a[1] - a[3])
+    else:
+        dx = min(a[2], b[2]) - max(a[0], b[0])
+        dy = min(a[3], b[3]) - max(a[1], b[1])
+        if (dx >= 0) and (dy >= 0):
+            return dx * dy
+        else:
+            return 0
+
+
+def infer_phase_1(vis=False):
+    tf.reset_default_graph()
+
     # ## Load a (frozen) Tensorflow model into memory.
     detection_graph = tf.Graph()
     with detection_graph.as_default():
@@ -113,11 +131,9 @@ def infer_phase_1():
             tf.import_graph_def(od_graph_def, name='')
 
     # # begin test image
-    image_list = []
+    resized_image_list = []
     box_list = []
-    score_list = []
-    classes_list = []
-    num_list = []
+    filename_list = []
 
     with detection_graph.as_default():
         with tf.Session(graph=detection_graph) as sess:
@@ -142,22 +158,122 @@ def infer_phase_1():
                     [detection_boxes, detection_scores, detection_classes, num_detections],
                     feed_dict={image_tensor: image_np_expanded})
 
-                threshold = np.sort(scores, axis=None)[-3]
-                threshold = threshold if threshold > 0.01 else 0.01
+                boxes = boxes[0]
+                scores = scores[0]
+
+                # scores_lag = np.roll(scores, shift=-1)
+                # idx = np.argmax(scores - scores_lag < 0.1)
+                threshold = np.sort(scores, axis=None)[-4]
+                # threshold = threshold if threshold > 0.01 else 0.01
+
                 im_width, im_height = image.size
 
-                for i in range(boxes.shape[1]):
-                    box = boxes[0][i]
-                    if scores[0][i] > threshold:
-                        ymin, xmin, ymax, xmax = box
-                        class_ = INT_TO_CLASS[classes[0][i]]
-                        draw_bounding_box_on_image(image, ymin, xmin, ymax, xmax, color=CLASS_TO_COLOR[class_],
-                                                   display_str_list=[class_ + ": {0:.3f}".format(scores[0][i])])
+                box_hist = []
+                for i in range(boxes.shape[0]):
+                    box = boxes[i]
+                    ymin, xmin, ymax, xmax = box
 
-                        (left, right, top, bottom) = (xmin * im_width, xmax * im_width,
-                                                      ymin * im_height, ymax * im_height)
-                        image.crop((left, top, right, bottom)).show()
+                    (left, right, top, bottom) = (xmin * im_width, xmax * im_width,
+                                                  ymin * im_height, ymax * im_height)
+
+                    box_ = (left, top, right, bottom)
+
+                    if scores[i] > threshold:
+
+                        legal = True
+
+                        for box__ in box_hist:
+                            area_ = cal_area(box_)
+                            area__ = cal_area(box__)
+                            area___ = cal_area(box_, box__)
+                            if area___ / area_ > AREA_THRESHOLD or area___ / area__ > AREA_THRESHOLD:
+                                legal = False
+                                break
+
+                        if not legal:
+                            continue
+
+                        resized_image_list.append(load_image_into_numpy_array(image.crop(box_).resize((64, 64))))
+                        box_list.append((left, top, right, bottom))
+                        filename_list.append(image_path)
+
+                        if vis:
+                            class_ = INT_TO_CLASS[classes[0][i]]
+                            draw_bounding_box_on_image(image, ymin, xmin, ymax, xmax, color=CLASS_TO_COLOR[class_],
+                                                       display_str_list=[class_ + ": {0:.3f}".format(scores[i])])
+
+                        box_hist.append(box_)
+
+    return resized_image_list, box_list, filename_list
 
 
-if __name__ == "__main__":
-    infer_phase_1()
+def infer_phase_2(resized_images_list):
+    tf.reset_default_graph()
+
+    model_name = "./models/hand_classification/hand_classification_model.h5"
+    model = keras.models.load_model(model_name)
+
+    x_data = resized_images_list.astype('float32')
+    x_data /= 255
+
+    outputs = model.predict(x_data)
+    print(outputs.shape)
+    classes = np.argmax(outputs, axis=1)
+    print(classes)
+    return classes  # []
+
+
+def pipeline():
+    resized_image_list, box_list, filename_list = infer_phase_1()
+    classes_list = infer_phase_2(np.array(resized_image_list))
+
+    print(len(resized_image_list))
+
+    if not LOCAL:
+        for i, resized_image in enumerate(resized_image_list):
+            box = box_list[i]
+            ANS_WRITER.write(
+                '%s %d %d %d %d %d %f\n' % (filename_list[i], box[0], box[1], box[2], box[3], classes_list[i], 1))
+
+            score, err = judger_hand.judge()
+            if err is not None:  # in case we failed to judge your submission
+                print(err)
+            else:
+                print(score)
+    else:
+        for i, resized_image in enumerate(resized_image_list):
+            skimage.io.imshow(resized_image)
+            plt.title("{}: class:{}".format(filename_list[i], "L" if 0 == classes_list[i] else "R"))
+            plt.tight_layout()
+            plt.savefig(
+                "./outputs/{}-{}-{}.jpg".format(filename_list[i].split("/")[-1], i,
+                                                "L" if 0 == classes_list[i] else "R"))
+
+
+import argparse
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--local', type=int, default=0, help='if local')
+    args = parser.parse_args()
+
+    if args.local == 0:
+        LOCAL = True
+    else:
+        LOCAL = False
+
+    if LOCAL:
+        PATH_TO_TEST_IMAGES_DIR = './test_images/'
+
+        TEST_IMAGE_PATHS = [
+            os.path.join(PATH_TO_TEST_IMAGES_DIR, filename) for filename in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
+    else:
+        try:
+            import judger_hand
+
+            TEST_IMAGE_PATHS = judger_hand.get_file_names()
+            ANS_WRITER = judger_hand.get_output_file_object()
+        except ImportError:
+            print("You need to install judger_hand")
+
+    pipeline()
