@@ -9,6 +9,7 @@ import PIL.ImageFont as ImageFont
 import pylab as plt
 import skimage.io
 import keras
+import judger_hand
 
 LOCAL = True
 
@@ -163,7 +164,7 @@ def infer_phase_1(vis=False):
 
                 # scores_lag = np.roll(scores, shift=-1)
                 # idx = np.argmax(scores - scores_lag < 0.1)
-                threshold = np.sort(scores, axis=None)[-4]
+                threshold = scores[4]  # np.sort(scores, axis=None)[-5]
                 # threshold = threshold if threshold > 0.01 else 0.01
 
                 im_width, im_height = image.size
@@ -183,10 +184,9 @@ def infer_phase_1(vis=False):
                         legal = True
 
                         for box__ in box_hist:
-                            area_ = cal_area(box_)
                             area__ = cal_area(box__)
                             area___ = cal_area(box_, box__)
-                            if area___ / area_ > AREA_THRESHOLD or area___ / area__ > AREA_THRESHOLD:
+                            if area___ / area__ > AREA_THRESHOLD:
                                 legal = False
                                 break
 
@@ -230,24 +230,28 @@ def pipeline():
     print(len(resized_image_list))
 
     if not LOCAL:
-        for i, resized_image in enumerate(resized_image_list):
-            box = box_list[i]
-            ANS_WRITER.write(
-                '%s %d %d %d %d %d %f\n' % (filename_list[i], box[0], box[1], box[2], box[3], classes_list[i], 1))
+        ans_writer = judger_hand.get_output_file_object()
 
-            score, err = judger_hand.judge()
-            if err is not None:  # in case we failed to judge your submission
-                print(err)
-            else:
-                print(score)
+        for i, resized_image in enumerate(resized_image_list):
+            filename = filename_list[i].replace(os.path.sep, '/').split("/")[-1]
+            skimage.io.imsave("./outputs/{}-{}-{}.jpg".format(filename, i,
+                                                              "L" if 0 == classes_list[i] else "R"), resized_image)
+
+            box = box_list[i]
+            str_ = '%s %d %d %d %d %d %f\n' % (
+                filename_list[i], int(box[0]), int(box[1]), int(box[2]), int(box[3]), classes_list[i], .8)
+            ans_writer.write(str_.encode())
+
+        score, err = judger_hand.judge()
+        if err is not None:  # in case we failed to judge your submission
+            print(err)
+        else:
+            print("score", score)
     else:
         for i, resized_image in enumerate(resized_image_list):
-            skimage.io.imshow(resized_image)
-            plt.title("{}: class:{}".format(filename_list[i], "L" if 0 == classes_list[i] else "R"))
-            plt.tight_layout()
-            plt.savefig(
-                "./outputs/{}-{}-{}.jpg".format(filename_list[i].split("/")[-1], i,
-                                                "L" if 0 == classes_list[i] else "R"))
+            filename = filename_list[i].replace(os.path.sep, '/').split("/")[-1]
+            skimage.io.imsave("./outputs/{}-{}-{}.jpg".format(filename, i,
+                                                              "L" if 0 == classes_list[i] else "R"), resized_image)
 
 
 import argparse
@@ -266,15 +270,12 @@ if __name__ == '__main__':
 
     if LOCAL:
         PATH_TO_TEST_IMAGES_DIR = './test_images/'
-
         TEST_IMAGE_PATHS = [
             os.path.join(PATH_TO_TEST_IMAGES_DIR, filename) for filename in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
     else:
         try:
-            import judger_hand
 
             TEST_IMAGE_PATHS = judger_hand.get_file_names()
-            ANS_WRITER = judger_hand.get_output_file_object()
 
             print(TEST_IMAGE_PATHS)
         except ImportError:
