@@ -24,7 +24,7 @@ def load_data():
 batch_size = 32
 num_classes = 2
 epochs = 100
-save_dir = os.path.join(os.getcwd(), 'saved_models')
+save_dir = os.path.join(os.getcwd(), 'data')
 model_name = 'hand_classification_model.h5'
 # Save model and weights
 if not os.path.isdir(save_dir):
@@ -65,7 +65,7 @@ model.add(Dense(512))
 model.add(Activation('relu'))
 model.add(Dropout(0.5))
 model.add(Dense(num_classes))
-model.add(Activation('softmax'))
+model.add(Activation('sigmoid'))
 
 # initiate RMSprop optimizer
 opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
