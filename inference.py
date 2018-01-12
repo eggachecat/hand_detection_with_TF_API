@@ -6,7 +6,6 @@ import PIL.Image as Image
 import PIL.ImageColor as ImageColor
 import PIL.ImageDraw as ImageDraw
 import PIL.ImageFont as ImageFont
-import pylab as plt
 import skimage.io
 import keras
 import judger_hand
