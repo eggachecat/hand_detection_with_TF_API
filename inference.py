@@ -262,6 +262,8 @@ if __name__ == '__main__':
     else:
         LOCAL = False
 
+    print(LOCAL)
+
     if LOCAL:
         PATH_TO_TEST_IMAGES_DIR = './test_images/'
 
@@ -273,6 +275,8 @@ if __name__ == '__main__':
 
             TEST_IMAGE_PATHS = judger_hand.get_file_names()
             ANS_WRITER = judger_hand.get_output_file_object()
+
+            print(TEST_IMAGE_PATHS)
         except ImportError:
             print("You need to install judger_hand")
 
