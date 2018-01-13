@@ -1,4 +1,3 @@
-import pdb
 import numpy as np
 import os
 import tensorflow as tf
@@ -158,7 +157,7 @@ def infer_phase_1(vis=False):
                 (boxes, scores, classes, num) = sess.run(
                     [detection_boxes, detection_scores, detection_classes, num_detections],
                     feed_dict={image_tensor: image_np_expanded})
-                pdb.set_trace()
+
                 boxes = boxes[0]
                 scores = scores[0]
 
