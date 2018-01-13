@@ -1,3 +1,4 @@
+import pdb
 import numpy as np
 import os
 import tensorflow as tf
@@ -157,7 +158,7 @@ def infer_phase_1(vis=False):
                 (boxes, scores, classes, num) = sess.run(
                     [detection_boxes, detection_scores, detection_classes, num_detections],
                     feed_dict={image_tensor: image_np_expanded})
-
+                pdb.set_trace()
                 boxes = boxes[0]
                 scores = scores[0]
 
@@ -203,6 +204,9 @@ def infer_phase_1(vis=False):
 
                         box_hist.append(box_)
 
+                    else:
+                        break
+
     return resized_image_list, box_list, filename_list
 
 
@@ -247,6 +251,9 @@ def pipeline():
         else:
             print("score", score)
     else:
+        if not os.path.isdir("./outputs"):
+            os.mkdir("./outputs")
+
         for i, resized_image in enumerate(resized_image_list):
             filename = filename_list[i].replace(os.path.sep, '/').split("/")[-1]
             skimage.io.imsave("./outputs/{}-{}-{}.jpg".format(filename, i,
