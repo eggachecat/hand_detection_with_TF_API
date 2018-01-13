@@ -4,6 +4,7 @@ import os
 import glob
 import json
 from PIL import Image, ImageEnhance
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 parser.add_argument('dir', type=str, help='The path to a folder which contains 2 folders "img/" and "label/"')
@@ -34,12 +35,13 @@ if args.bright:
 
     if not os.path.isdir(bright_img_dir):
         os.mkdir(bright_img_dir)
-    if not os.path.isdir(bright_img_dir):
-        os.mkdir(bright_img_dir)
+    if not os.path.isdir(bright_label_dir):
+        os.mkdir(bright_label_dir)
 
 if not (args.flip or args.bright):
     raise ValueError('No augment type given')
 
+pbar = tqdm(total=len(img_paths))
 for p in img_paths:
     img = Image.open(p)
     width, height = img.size
@@ -63,15 +65,23 @@ for p in img_paths:
 
     if args.bright:
         brightness = ImageEnhance.Brightness(img)
-        bright_img = brightness.enhance(2.0)
-        darker_img = brightness.enhance(0.5)
+        bright_img1 = brightness.enhance(1.5)
+        bright_img2 = brightness.enhance(2.0)
+        darker_img = brightness.enhance(0.7)
 
-        bright_img.save(
-            bright_img_dir + 'img' + '{:05d}'.format(len(img_paths) + img_id) + '.png', 'PNG')
+        bright_img1.save(
+            bright_img_dir + 'img_' + '{:05d}'.format(len(img_paths) + img_id) + '.png', 'PNG')
         with open(bright_label_dir + 'label_' + '{:05d}'.format(len(img_paths) + img_id) + '.json', 'w') as f:
             json.dump(label, f)
 
-        darker_img.save(
-            bright_img_dir + 'img' + '{:05d}'.format(2 * len(img_paths) + img_id) + '.png', 'PNG')
+        bright_img2.save(
+            bright_img_dir + 'img_' + '{:05d}'.format(2 * len(img_paths) + img_id) + '.png', 'PNG')
         with open(bright_label_dir + 'label_' + '{:05d}'.format(2 * len(img_paths) + img_id) + '.json', 'w') as f:
             json.dump(label, f)
+
+        darker_img.save(
+            bright_img_dir + 'img_' + '{:05d}'.format(3 * len(img_paths) + img_id) + '.png', 'PNG')
+        with open(bright_label_dir + 'label_' + '{:05d}'.format(3 * len(img_paths) + img_id) + '.json', 'w') as f:
+            json.dump(label, f)
+
+    pbar.update(1)
