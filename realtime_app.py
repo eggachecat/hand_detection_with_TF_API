@@ -183,7 +183,7 @@ def infer_phase_1():
 
                 boxes = boxes[0]
                 scores = scores[0]
-                threshold = scores[3]
+                threshold = scores[4]
 
                 im_width, im_height = image_np.shape[1], image_np.shape[0]
                 # print(im_width, im_height)

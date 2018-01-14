@@ -130,7 +130,6 @@ def infer_phase_1(vis=False):
             od_graph_def.ParseFromString(serialized_graph)
             tf.import_graph_def(od_graph_def, name='')
 
-    # # begin test image
     image_list = []
     resized_image_list = []
     box_list = []
@@ -139,35 +138,24 @@ def infer_phase_1(vis=False):
 
     with detection_graph.as_default():
         with tf.Session(graph=detection_graph) as sess:
-            # Definite input and output Tensors for detection_graph
             image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
-            # Each box represents a part of the image where a particular object was detected.
             detection_boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
-            # Each score represent how level of confidence for each of the objects.
-            # Score is shown on the result image, together with the class label.
             detection_scores = detection_graph.get_tensor_by_name('detection_scores:0')
             detection_classes = detection_graph.get_tensor_by_name('detection_classes:0')
             num_detections = detection_graph.get_tensor_by_name('num_detections:0')
             for image_idx, image_path in enumerate(TEST_IMAGE_PATHS):
-                image = Image.open(image_path)
 
-                # the array based representation of the image will be used later in order to prepare the
-                # result image with boxes and labels on it.
+                image = Image.open(image_path)
                 image_np = load_image_into_numpy_array(image)
-                # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
                 image_np_expanded = np.expand_dims(image_np, axis=0)
-                # Actual detection.
+
                 (boxes, scores, classes, num) = sess.run(
                     [detection_boxes, detection_scores, detection_classes, num_detections],
                     feed_dict={image_tensor: image_np_expanded})
 
                 boxes = boxes[0]
                 scores = scores[0]
-
-                # scores_lag = np.roll(scores, shift=-1)
-                # idx = np.argmax(scores - scores_lag < 0.1)
-                threshold = scores[4]  # np.sort(scores, axis=None)[-5]
-                # threshold = threshold if threshold > 0.01 else 0.01
+                threshold = scores[4]
 
                 im_width, im_height = image.size
 
@@ -237,7 +225,7 @@ def pipeline(vis=False):
         for i, resized_image in enumerate(resized_image_list):
             box = box_list[i]
             str_ = '%s %d %d %d %d %d %f\n' % (
-                filename_list[i], int(box[0]), int(box[1]), int(box[2]), int(box[3]), classes_list[i], .8)
+                filename_list[i], int(box[0]), int(box[1]), int(box[2]), int(box[3]), classes_list[i], score_list[i])
             ans_writer.write(str_.encode())
 
         score, err = judger_hand.judge()
