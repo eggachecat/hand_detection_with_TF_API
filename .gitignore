@@ -106,3 +106,4 @@ ENV/
 */data/*
 */training/train/*
 */training/eval/*
+*/models/*

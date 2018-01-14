@@ -131,9 +131,11 @@ def infer_phase_1(vis=False):
             tf.import_graph_def(od_graph_def, name='')
 
     # # begin test image
+    image_list = []
     resized_image_list = []
     box_list = []
     filename_list = []
+    score_list = []
 
     with detection_graph.as_default():
         with tf.Session(graph=detection_graph) as sess:
@@ -148,6 +150,7 @@ def infer_phase_1(vis=False):
             num_detections = detection_graph.get_tensor_by_name('num_detections:0')
             for image_idx, image_path in enumerate(TEST_IMAGE_PATHS):
                 image = Image.open(image_path)
+
                 # the array based representation of the image will be used later in order to prepare the
                 # result image with boxes and labels on it.
                 image_np = load_image_into_numpy_array(image)
@@ -192,21 +195,18 @@ def infer_phase_1(vis=False):
                         if not legal:
                             continue
 
+                        if vis:
+                            image_list.append(image)
                         resized_image_list.append(load_image_into_numpy_array(image.crop(box_).resize((64, 64))))
                         box_list.append((left, top, right, bottom))
                         filename_list.append(image_path)
-
-                        if vis:
-                            class_ = INT_TO_CLASS[classes[0][i]]
-                            draw_bounding_box_on_image(image, ymin, xmin, ymax, xmax, color=CLASS_TO_COLOR[class_],
-                                                       display_str_list=[class_ + ": {0:.3f}".format(scores[i])])
-
+                        score_list.append(scores[i])
                         box_hist.append(box_)
 
                     else:
                         break
 
-    return resized_image_list, box_list, filename_list
+    return resized_image_list, box_list, filename_list, image_list, score_list
 
 
 def infer_phase_2(resized_images_list):
@@ -225,8 +225,8 @@ def infer_phase_2(resized_images_list):
     return classes  # []
 
 
-def pipeline():
-    resized_image_list, box_list, filename_list = infer_phase_1()
+def pipeline(vis=False):
+    resized_image_list, box_list, filename_list, image_list, score_list = infer_phase_1(vis)
     classes_list = infer_phase_2(np.array(resized_image_list))
 
     print(len(resized_image_list))
@@ -249,10 +249,17 @@ def pipeline():
         if not os.path.isdir("./outputs"):
             os.mkdir("./outputs")
 
-        for i, resized_image in enumerate(resized_image_list):
+        for i, image in enumerate(image_list):
             filename = filename_list[i].replace(os.path.sep, '/').split("/")[-1]
-            skimage.io.imsave("./outputs/{}-{}-{}.jpg".format(filename, i,
-                                                              "L" if 0 == classes_list[i] else "R"), resized_image)
+            box = box_list[i]
+
+            if vis:
+                class_ = "L" if classes_list[i] == 0 else "R"
+
+                draw_bounding_box_on_image(image, int(box[1]), int(box[0]), int(box[3]), int(box[2]),
+                                           color=CLASS_TO_COLOR[class_], use_normalized_coordinates=False,
+                                           display_str_list=[class_ + ": {0:.3f}".format(score_list[i])])
+                skimage.io.imsave("./outputs/{}.jpg".format(filename), image)
 
 
 import argparse
@@ -260,6 +267,8 @@ import argparse
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--local', type=int, default=0, help='if local')
+    parser.add_argument('--infer_data', type=str, help='infer data path', nargs='*', default=['./test_images/'])
+
     args = parser.parse_args()
 
     if args.local == 0:
@@ -267,19 +276,17 @@ if __name__ == '__main__':
     else:
         LOCAL = False
 
-    print(LOCAL)
-
     if LOCAL:
-        PATH_TO_TEST_IMAGES_DIR = './test_images/'
-        TEST_IMAGE_PATHS = [
-            os.path.join(PATH_TO_TEST_IMAGES_DIR, filename) for filename in os.listdir(PATH_TO_TEST_IMAGES_DIR)]
+        TEST_IMAGE_PATHS = []
+        for path in args.infer_data:
+            TEST_IMAGE_PATHS += [
+                os.path.join(path, filename) for filename in os.listdir(path)]
+
+        pipeline(True)
     else:
         try:
 
             TEST_IMAGE_PATHS = judger_hand.get_file_names()
-
-            print(TEST_IMAGE_PATHS)
+            pipeline(False)
         except ImportError:
             print("You need to install judger_hand")
-
-    pipeline()
