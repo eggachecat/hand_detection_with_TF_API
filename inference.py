@@ -235,10 +235,6 @@ def pipeline():
         ans_writer = judger_hand.get_output_file_object()
 
         for i, resized_image in enumerate(resized_image_list):
-            filename = filename_list[i].replace(os.path.sep, '/').split("/")[-1]
-            skimage.io.imsave("./outputs/{}-{}-{}.jpg".format(filename, i,
-                                                              "L" if 0 == classes_list[i] else "R"), resized_image)
-
             box = box_list[i]
             str_ = '%s %d %d %d %d %d %f\n' % (
                 filename_list[i], int(box[0]), int(box[1]), int(box[2]), int(box[3]), classes_list[i], .8)
