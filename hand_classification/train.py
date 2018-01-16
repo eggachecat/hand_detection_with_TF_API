@@ -23,7 +23,7 @@ def load_data():
     return (np.array(x_train), np.array(y_train)), (np.array(x_test), np.array(y_test))
 
 
-batch_size = 32
+batch_size = 64
 num_classes = 2
 epochs = 100
 save_dir = os.path.join(os.getcwd(), 'data')
@@ -91,8 +91,8 @@ validation_image_generator = ImageDataGenerator(rotation_range=180)
 
 model.fit_generator(train_image_generator.flow(x_train, y_train, batch_size=batch_size),
                     epochs=epochs, steps_per_epoch=2000,
-                    validation_data=validation_image_generator.flow(x_test, y_test, batch_size=len(x_test)),
-                    validation_steps=800,
+                    validation_data=validation_image_generator.flow(x_test, y_test, batch_size=batch_size),
+                    validation_steps=10,
                     callbacks=[checkpointer])
 
 # Score trained model.
