@@ -1,9 +1,7 @@
+from PIL import Image, ImageOps
+
 import json
 import os
-import skimage
-import skimage.io
-import skimage.transform
-import scipy.misc
 import argparse
 
 DATA_PATH = ""
@@ -83,9 +81,10 @@ data_counter = 0
 
 def create_classification(config, path, folder):
     global data_counter
-    img = skimage.io.imread(os.path.join(path, '{}'.format(config["filename"])))
+    # img = skimage.io.imread(os.path.join(path, '{}'.format(config["filename"])))
+    img = Image.open(os.path.join(path, '{}'.format(config["filename"])))
 
-    height, width = img.shape[:2]
+    width, height = img.size
     for key, value in config["label"].items():
 
         xmins = value[0]
@@ -96,10 +95,21 @@ def create_classification(config, path, folder):
         if xmins < 0 or xmaxs > width or ymins < 0 or ymaxs > height:
             continue
 
-        cropped = img[ymins:ymaxs, xmins:xmaxs]
-        resized = skimage.transform.resize(cropped, (64, 64), mode="constant")
+        # cropped = img[ymins:ymaxs, xmins:xmaxs]
+        # resized = skimage.transform.resize(cropped, (64, 64), mode="constant")
+        # scipy.misc.imsave(os.path.join(folder, "{}-{}.jpg".format(data_counter, key)), resized)
 
-        scipy.misc.imsave(os.path.join(folder, "{}-{}.jpg".format(data_counter, key)), resized)
+        cropped = img.crop((xmins, ymins, xmaxs, ymaxs))
+
+        size = (64, 64)
+        cropped.thumbnail(size, Image.ANTIALIAS)
+        background = Image.new('RGB', size, (0, 0, 0))
+        background.paste(
+            cropped, (int((size[0] - cropped.size[0]) / 2), int((size[1] - cropped.size[1]) / 2))
+        )
+
+        background.save(os.path.join(folder, "{}-{}.jpg".format(data_counter, key)))
+
         data_counter += 1
 
 
