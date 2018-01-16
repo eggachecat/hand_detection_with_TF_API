@@ -8,6 +8,8 @@ import os
 import skimage.io
 import numpy as np
 
+from keras.preprocessing.image import ImageDataGenerator
+
 
 def load_data():
     train_data = skimage.io.imread_collection("./data/train/*.jpg")
@@ -33,6 +35,7 @@ model_path = os.path.join(save_dir, model_name)
 
 # The data, shuffled and split between train and test sets:
 (x_train, y_train), (x_test, y_test) = load_data()
+
 print("loading done..")
 print('x_train shape:', x_train.shape)
 print(x_train.shape[0], 'train samples')
@@ -65,7 +68,7 @@ model.add(Dense(512))
 model.add(Activation('relu'))
 model.add(Dropout(0.5))
 model.add(Dense(num_classes))
-model.add(Activation('sigmoid'))
+model.add(Activation('softmax'))
 
 # initiate RMSprop optimizer
 opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
@@ -82,12 +85,15 @@ x_test /= 255
 
 checkpointer = keras.callbacks.ModelCheckpoint(model_path, monitor='val_loss', verbose=0, save_best_only=True,
                                                save_weights_only=False, mode='auto', period=1)
-model.fit(x_train, y_train,
-          batch_size=batch_size,
-          epochs=epochs,
-          validation_data=(x_test, y_test),
-          callbacks=[checkpointer],
-          shuffle=True)
+
+train_image_generator = ImageDataGenerator(rotation_range=180)
+validation_image_generator = ImageDataGenerator(rotation_range=180)
+
+model.fit_generator(train_image_generator.flow(x_train, y_train, batch_size=batch_size),
+                    epochs=epochs, steps_per_epoch=2000,
+                    validation_data=validation_image_generator.flow(x_test, y_test, batch_size=len(x_test)),
+                    validation_steps=800,
+                    callbacks=[checkpointer])
 
 # Score trained model.
 scores = model.evaluate(x_test, y_test, verbose=1)

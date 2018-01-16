@@ -50,6 +50,18 @@ def generate_paths_1():
     prefix_list += [10, 11]
 
 
+def generate_paths_2():
+    """
+    only real data
+    :return:
+    """
+    global base_path_list, prefix_list
+
+    base_path_list += [os.path.join(DATA_PATH, "DeepQ-Vivepaper/data/air"),
+                       os.path.join(DATA_PATH, "DeepQ-Vivepaper/data/book")]
+    prefix_list += [0, 1]
+
+
 def get_obj(base_path):
     print(base_path)
     data_obj = dict()
@@ -112,6 +124,7 @@ def generate_classification_data():
         os.makedirs(test_folder)
 
     for prefix, data_obj in data_configs.items():
+        print(prefix)
 
         n_examples = len(list(data_obj.keys()))
         ctr = 0
@@ -136,7 +149,12 @@ if __name__ == '__main__':
 
     if args.path_type == 0:
         generate_paths_0()
-    else:
+    elif args.path_type == 1:
         generate_paths_1()
+    elif args.path_type == 2:
+        print("!!!!")
+        generate_paths_2()
+    else:
+        pass
 
     generate_classification_data()
