@@ -9,7 +9,6 @@ import PIL.ImageFont as ImageFont
 import skimage.io
 import keras
 import judger_hand
-import filenames
 
 from keras import backend as K
 
@@ -161,7 +160,7 @@ def infer_phase_1(vis=False):
 
                 boxes = boxes[0]
                 scores = scores[0]
-                threshold = scores[top_rank]
+                threshold = 0.1 if scores[top_rank] < 0.1 else scores[top_rank]
 
                 im_width, im_height = image.size
 
@@ -230,9 +229,9 @@ def pipeline(vis=False):
 
         for i, resized_image in enumerate(resized_image_list):
             box = box_list[i]
+            score_ = new_score_list[i][classes_list[i]]
             str_ = '%s %d %d %d %d %d %f\n' % (
-                filename_list[i], int(box[0]), int(box[1]), int(box[2]), int(box[3]), classes_list[i],
-                score_list[i])
+                filename_list[i], int(box[0]), int(box[1]), int(box[2]), int(box[3]), classes_list[i], score_)
             ans_writer.write(str_.encode())
 
         score, err = judger_hand.judge()
@@ -247,14 +246,14 @@ def pipeline(vis=False):
         for i, image in enumerate(image_list):
             filename = filename_list[i].replace(os.path.sep, '/').split("/")[-1]
             box = box_list[i]
+            score_ = new_score_list[i][classes_list[i]]
 
-            if vis:
-                class_ = "L" if classes_list[i] == 0 else "R"
+            class_ = "L" if classes_list[i] == 0 else "R"
 
-                draw_bounding_box_on_image(image, int(box[1]), int(box[0]), int(box[3]), int(box[2]),
-                                           color=CLASS_TO_COLOR[class_], use_normalized_coordinates=False,
-                                           display_str_list=[class_ + ": {0:.7f}".format(score_list[i])])
-                skimage.io.imsave("./outputs/{}.jpg".format(filename), image)
+            draw_bounding_box_on_image(image, int(box[1]), int(box[0]), int(box[3]), int(box[2]),
+                                       color=CLASS_TO_COLOR[class_], use_normalized_coordinates=False,
+                                       display_str_list=[class_ + ": {0:.3f}, {1:.3f}".format(score_list[i], score_)])
+            skimage.io.imsave("./outputs/{}.jpg".format(filename), image)
 
 
 import argparse
@@ -263,6 +262,8 @@ from random import shuffle
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--local', type=int, default=0, help='if local')
+    parser.add_argument('--step', type=int, default=1, help='if local')
+
     parser.add_argument('--infer_data', type=str, help='infer data path', nargs='*', default=['./test_images/'])
 
     args = parser.parse_args()
@@ -274,13 +275,14 @@ if __name__ == '__main__':
         LOCAL = False
 
     if LOCAL:
+        print("LOCAL")
         TOTAL_TEST_IMAGE_PATHS = []
         for path in args.infer_data:
             TOTAL_TEST_IMAGE_PATHS += [
-                os.path.join(path, filename) for filename in os.listdir(path)]
+                os.path.join(path, filename) for idx, filename in enumerate(os.listdir(path)) if idx % args.step == 0]
         print(len(TOTAL_TEST_IMAGE_PATHS))
 
-        shuffle(TOTAL_TEST_IMAGE_PATHS)
+        # shuffle(TOTAL_TEST_IMAGE_PATHS)
 
         for chunk in [TOTAL_TEST_IMAGE_PATHS[x:x + chunk_size] for x in
                       range(0, len(TOTAL_TEST_IMAGE_PATHS), chunk_size)]:
@@ -289,8 +291,9 @@ if __name__ == '__main__':
             tf.reset_default_graph()
             K.clear_session()
 
-
     else:
+        print("Not LOCAL")
+
         try:
 
             TEST_IMAGE_PATHS = judger_hand.get_file_names()
