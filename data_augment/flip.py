@@ -20,8 +20,8 @@ img_paths = glob.glob(args.dir + '/img/*')
 label_dir = args.dir + '/label/'
 
 if args.flip:
-    flipped_img_dir = args.dir + '/img_f/'
-    flipped_label_dir = args.dir + '/label_f/'
+    flipped_img_dir = args.dir + '/img/'
+    flipped_label_dir = args.dir + '/label/'
 
     # # check and make new folder
     if not os.path.isdir(flipped_img_dir):
@@ -30,8 +30,8 @@ if args.flip:
         os.mkdir(flipped_label_dir)
 
 if args.bright:
-    bright_img_dir = args.dir + '/img_b/'
-    bright_label_dir = args.dir + '/label_b/'
+    bright_img_dir = args.dir + '/img/'
+    bright_label_dir = args.dir + '/label/'
 
     if not os.path.isdir(bright_img_dir):
         os.mkdir(bright_img_dir)

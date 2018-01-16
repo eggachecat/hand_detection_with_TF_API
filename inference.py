@@ -9,6 +9,9 @@ import PIL.ImageFont as ImageFont
 import skimage.io
 import keras
 import judger_hand
+import filenames
+
+from keras import backend as K
 
 LOCAL = True
 
@@ -120,7 +123,6 @@ def cal_area(a, b=None):
 
 def infer_phase_1(vis=False):
     tf.reset_default_graph()
-
     # ## Load a (frozen) Tensorflow model into memory.
     detection_graph = tf.Graph()
     with detection_graph.as_default():
@@ -145,9 +147,13 @@ def infer_phase_1(vis=False):
             num_detections = detection_graph.get_tensor_by_name('num_detections:0')
             for image_idx, image_path in enumerate(TEST_IMAGE_PATHS):
 
+                if image_idx % 100 == 0:
+                    print(image_idx)
+
                 image = Image.open(image_path)
                 image_np = load_image_into_numpy_array(image)
                 image_np_expanded = np.expand_dims(image_np, axis=0)
+                top_rank = 4
 
                 (boxes, scores, classes, num) = sess.run(
                     [detection_boxes, detection_scores, detection_classes, num_detections],
@@ -155,7 +161,7 @@ def infer_phase_1(vis=False):
 
                 boxes = boxes[0]
                 scores = scores[0]
-                threshold = scores[4]
+                threshold = scores[top_rank]
 
                 im_width, im_height = image.size
 
@@ -210,12 +216,12 @@ def infer_phase_2(resized_images_list):
     print(outputs.shape)
     classes = np.argmax(outputs, axis=1)
     print(classes)
-    return classes  # []
+    return classes, outputs  # []
 
 
 def pipeline(vis=False):
     resized_image_list, box_list, filename_list, image_list, score_list = infer_phase_1(vis)
-    classes_list = infer_phase_2(np.array(resized_image_list))
+    classes_list, new_score_list = infer_phase_2(np.array(resized_image_list))
 
     print(len(resized_image_list))
 
@@ -225,7 +231,8 @@ def pipeline(vis=False):
         for i, resized_image in enumerate(resized_image_list):
             box = box_list[i]
             str_ = '%s %d %d %d %d %d %f\n' % (
-                filename_list[i], int(box[0]), int(box[1]), int(box[2]), int(box[3]), classes_list[i], score_list[i])
+                filename_list[i], int(box[0]), int(box[1]), int(box[2]), int(box[3]), classes_list[i],
+                score_list[i])
             ans_writer.write(str_.encode())
 
         score, err = judger_hand.judge()
@@ -246,11 +253,12 @@ def pipeline(vis=False):
 
                 draw_bounding_box_on_image(image, int(box[1]), int(box[0]), int(box[3]), int(box[2]),
                                            color=CLASS_TO_COLOR[class_], use_normalized_coordinates=False,
-                                           display_str_list=[class_ + ": {0:.3f}".format(score_list[i])])
+                                           display_str_list=[class_ + ": {0:.7f}".format(score_list[i])])
                 skimage.io.imsave("./outputs/{}.jpg".format(filename), image)
 
 
 import argparse
+from random import shuffle
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -258,6 +266,7 @@ if __name__ == '__main__':
     parser.add_argument('--infer_data', type=str, help='infer data path', nargs='*', default=['./test_images/'])
 
     args = parser.parse_args()
+    chunk_size = 100
 
     if args.local == 0:
         LOCAL = True
@@ -265,16 +274,27 @@ if __name__ == '__main__':
         LOCAL = False
 
     if LOCAL:
-        TEST_IMAGE_PATHS = []
+        TOTAL_TEST_IMAGE_PATHS = []
         for path in args.infer_data:
-            TEST_IMAGE_PATHS += [
+            TOTAL_TEST_IMAGE_PATHS += [
                 os.path.join(path, filename) for filename in os.listdir(path)]
+        print(len(TOTAL_TEST_IMAGE_PATHS))
 
-        pipeline(True)
+        shuffle(TOTAL_TEST_IMAGE_PATHS)
+
+        for chunk in [TOTAL_TEST_IMAGE_PATHS[x:x + chunk_size] for x in
+                      range(0, len(TOTAL_TEST_IMAGE_PATHS), chunk_size)]:
+            TEST_IMAGE_PATHS = chunk
+            pipeline(True)
+            tf.reset_default_graph()
+            K.clear_session()
+
+
     else:
         try:
 
             TEST_IMAGE_PATHS = judger_hand.get_file_names()
+            print("Total image:", len(TEST_IMAGE_PATHS))
             pipeline(False)
         except ImportError:
             print("You need to install judger_hand")
