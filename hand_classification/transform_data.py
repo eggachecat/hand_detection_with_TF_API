@@ -3,12 +3,17 @@ from PIL import Image, ImageOps
 import json
 import os
 import argparse
+import skimage
+import skimage.io
+import skimage.transform
+import scipy.misc
 
 DATA_PATH = ""
 TRAIN_RATIO = 0.9
 
 base_path_list = []
 prefix_list = []
+FIX_ASPECT_RATIO = False
 
 
 def generate_paths_0():
@@ -71,6 +76,20 @@ def generate_paths_3():
     prefix_list += [1, 2]
 
 
+def generate_paths_4():
+    global base_path_list, prefix_list
+
+    base_path_list.append(os.path.join(DATA_PATH, "DeepQ-Synth-Hand-01/data/s000"))
+    prefix_list.append(0)
+
+    base_path_list.append(os.path.join(DATA_PATH, "DeepQ-Synth-Hand-01/data/s001"))
+    prefix_list.append(1)
+
+    base_path_list += [os.path.join(DATA_PATH, "DeepQ-Vivepaper/data/air"),
+                       os.path.join(DATA_PATH, "DeepQ-Vivepaper/data/book")]
+    prefix_list += [2, 3]
+
+
 def get_obj(base_path):
     print(base_path)
     data_obj = dict()
@@ -92,10 +111,14 @@ data_counter = 0
 
 def create_classification(config, path, folder):
     global data_counter
-    # img = skimage.io.imread(os.path.join(path, '{}'.format(config["filename"])))
-    img = Image.open(os.path.join(path, '{}'.format(config["filename"])))
 
-    width, height = img.size
+    if FIX_ASPECT_RATIO:
+        img = Image.open(os.path.join(path, '{}'.format(config["filename"])))
+        width, height = img.size
+    else:
+        img = skimage.io.imread(os.path.join(path, '{}'.format(config["filename"])))
+        width, height = img.shape[1], img.shape[0]
+
     for key, value in config["label"].items():
 
         xmins = value[0]
@@ -106,20 +129,19 @@ def create_classification(config, path, folder):
         if xmins < 0 or xmaxs > width or ymins < 0 or ymaxs > height:
             continue
 
-        # cropped = img[ymins:ymaxs, xmins:xmaxs]
-        # resized = skimage.transform.resize(cropped, (64, 64), mode="constant")
-        # scipy.misc.imsave(os.path.join(folder, "{}-{}.jpg".format(data_counter, key)), resized)
-
+    if FIX_ASPECT_RATIO:
         cropped = img.crop((xmins, ymins, xmaxs, ymaxs))
-
         size = (64, 64)
         cropped.thumbnail(size, Image.ANTIALIAS)
         background = Image.new('RGB', size, (0, 0, 0))
         background.paste(
             cropped, (int((size[0] - cropped.size[0]) / 2), int((size[1] - cropped.size[1]) / 2))
         )
-
         background.save(os.path.join(folder, "{}-{}.jpg".format(data_counter, key)))
+    else:
+        cropped = img[ymins:ymaxs, xmins:xmaxs]
+        resized = skimage.transform.resize(cropped, (64, 64), mode="constant")
+        scipy.misc.imsave(os.path.join(folder, "{}-{}.jpg".format(data_counter, key)), resized)
 
         data_counter += 1
 
@@ -162,22 +184,29 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('data_path', type=str, help="parent path of data e.g. D://data//htc")
     parser.add_argument('--path_type', type=int, default=0, help='path_type')
+    parser.add_argument('--fix_ratio', type=bool, default=False, help='path_type')
+
     args = parser.parse_args()
     try:
         DATA_PATH = args.data_path
     except:
         print("Need data path!!")
 
+    FIX_ASPECT_RATIO = args.fix_ratio
+
     if args.path_type == 0:
         generate_paths_0()
     elif args.path_type == 1:
         generate_paths_1()
     elif args.path_type == 2:
-        print("!!!!")
+        print("!!!!2")
         generate_paths_2()
     elif args.path_type == 3:
-        print("!!!!")
+        print("!!!!3")
         generate_paths_3()
+    elif args.path_type == 4:
+        print("!!!4")
+        generate_paths_4()
     else:
         pass
 

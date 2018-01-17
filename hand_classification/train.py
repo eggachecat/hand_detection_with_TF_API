@@ -23,9 +23,11 @@ def load_data():
     return (np.array(x_train), np.array(y_train)), (np.array(x_test), np.array(y_test))
 
 
-batch_size = 64
+batch_size = 16
+v_batch_size = 128
+
 num_classes = 2
-epochs = 100
+epochs = 1000
 save_dir = os.path.join(os.getcwd(), 'data')
 model_name = 'hand_classification_model.h5'
 # Save model and weights
@@ -35,6 +37,9 @@ model_path = os.path.join(save_dir, model_name)
 
 # The data, shuffled and split between train and test sets:
 (x_train, y_train), (x_test, y_test) = load_data()
+
+print(x_train[0].shape)
+
 
 print("loading done..")
 print('x_train shape:', x_train.shape)
@@ -63,10 +68,31 @@ model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.25))
 
-model.add(Flatten())
-model.add(Dense(512))
+model.add(Conv2D(128, (3, 3), padding='same'))
 model.add(Activation('relu'))
-model.add(Dropout(0.5))
+model.add(Conv2D(128, (3, 3)))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
+
+model.add(Conv2D(256, (3, 3), padding='same'))
+model.add(Activation('relu'))
+model.add(Conv2D(256, (3, 3)))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
+
+
+model.add(Flatten())
+# model.add(Dense(1024))
+# model.add(Activation('relu'))
+# model.add(Dropout(0.25))
+# model.add(Dense(512))
+# model.add(Activation('relu'))
+# model.add(Dropout(0.25))
+model.add(Dense(256))
+model.add(Activation('relu'))
+model.add(Dropout(0.25))
 model.add(Dense(num_classes))
 model.add(Activation('softmax'))
 
@@ -86,13 +112,13 @@ x_test /= 255
 checkpointer = keras.callbacks.ModelCheckpoint(model_path, monitor='val_loss', verbose=0, save_best_only=True,
                                                save_weights_only=False, mode='auto', period=1)
 
-train_image_generator = ImageDataGenerator(rotation_range=180)
-validation_image_generator = ImageDataGenerator(rotation_range=180)
+train_image_generator = ImageDataGenerator(rotation_range=45, width_shift_range=0.1, height_shift_range=0.1, zoom_range=0.1)
+validation_image_generator = ImageDataGenerator(rotation_range=45, width_shift_range=0.1, height_shift_range=0.1, zoom_range=0.1)
 
 model.fit_generator(train_image_generator.flow(x_train, y_train, batch_size=batch_size),
-                    epochs=epochs, steps_per_epoch=2000,
-                    validation_data=validation_image_generator.flow(x_test, y_test, batch_size=batch_size),
-                    validation_steps=10,
+                    epochs=epochs, steps_per_epoch=len(x_train) // batch_size,
+                    validation_data=validation_image_generator.flow(x_test, y_test, batch_size=v_batch_size),
+                    validation_steps=len(x_test) // v_batch_size,
                     callbacks=[checkpointer])
 
 # Score trained model.

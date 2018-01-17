@@ -160,7 +160,7 @@ def infer_phase_1(vis=False):
 
                 boxes = boxes[0]
                 scores = scores[0]
-                threshold = scores[top_rank - 1] if scores[top_rank] < 0.1 else scores[top_rank]
+                threshold = scores[top_rank] #0.01 if scores[top_rank] < 0.01 else scores[top_rank]
 
                 im_width, im_height = image.size
 
@@ -196,15 +196,19 @@ def infer_phase_1(vis=False):
                             ctr += 1
                             counted = True
 
-                        size = (64, 64)
-                        cropped = image.crop(box_)
-                        cropped.thumbnail(size, Image.ANTIALIAS)
-                        background = Image.new('RGB', size, (0, 0, 0))
-                        background.paste(
-                            cropped, (int((size[0] - cropped.size[0]) / 2), int((size[1] - cropped.size[1]) / 2))
-                        )
+                        # size = (64, 64)
+                        # cropped = image.crop(box_)
+                        # cropped.thumbnail(size, Image.ANTIALIAS)
+                        # background = Image.new('RGB', size, (0, 0, 0))
+                        # background.paste(
+                        #     cropped, (int((size[0] - cropped.size[0]) / 2), int((size[1] - cropped.size[1]) / 2))
+                        # )
+                        # resized_image_list.append(load_image_into_numpy_array(background))
 
-                        resized_image_list.append(load_image_into_numpy_array(background))
+                        resized_image_list.append(load_image_into_numpy_array(image.crop(
+                            (box_[0] - 15, box_[1] - 15, box_[2] + 15, box_[3] + 15)
+                        ).resize((64, 64))))
+
                         box_list.append((left, top, right, bottom))
                         filename_list.append(image_path)
                         score_list.append(scores[i])
