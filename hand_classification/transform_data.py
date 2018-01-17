@@ -60,6 +60,17 @@ def generate_paths_2():
     prefix_list += [0, 1]
 
 
+def generate_paths_3():
+    global base_path_list, prefix_list
+
+    base_path_list.append(os.path.join(DATA_PATH, "DeepQ-Synth-Hand-01/data/s000"))
+    prefix_list.append(0)
+
+    base_path_list += [os.path.join(DATA_PATH, "DeepQ-Vivepaper/data/air"),
+                       os.path.join(DATA_PATH, "DeepQ-Vivepaper/data/book")]
+    prefix_list += [1, 2]
+
+
 def get_obj(base_path):
     print(base_path)
     data_obj = dict()
@@ -164,6 +175,9 @@ if __name__ == '__main__':
     elif args.path_type == 2:
         print("!!!!")
         generate_paths_2()
+    elif args.path_type == 3:
+        print("!!!!")
+        generate_paths_3()
     else:
         pass
 

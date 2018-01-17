@@ -136,7 +136,7 @@ def infer_phase_1(vis=False):
     box_list = []
     filename_list = []
     score_list = []
-
+    ctr = 0
     with detection_graph.as_default():
         with tf.Session(graph=detection_graph) as sess:
             image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
@@ -160,10 +160,11 @@ def infer_phase_1(vis=False):
 
                 boxes = boxes[0]
                 scores = scores[0]
-                threshold = 0.1 if scores[top_rank] < 0.1 else scores[top_rank]
+                threshold = scores[top_rank - 1] if scores[top_rank] < 0.1 else scores[top_rank]
 
                 im_width, im_height = image.size
 
+                counted = False
                 box_hist = []
                 for i in range(boxes.shape[0]):
                     box = boxes[i]
@@ -190,7 +191,20 @@ def infer_phase_1(vis=False):
 
                         if vis:
                             image_list.append(image)
-                        resized_image_list.append(load_image_into_numpy_array(image.crop(box_).resize((64, 64))))
+
+                        if not counted:
+                            ctr += 1
+                            counted = True
+
+                        size = (64, 64)
+                        cropped = image.crop(box_)
+                        cropped.thumbnail(size, Image.ANTIALIAS)
+                        background = Image.new('RGB', size, (0, 0, 0))
+                        background.paste(
+                            cropped, (int((size[0] - cropped.size[0]) / 2), int((size[1] - cropped.size[1]) / 2))
+                        )
+
+                        resized_image_list.append(load_image_into_numpy_array(background))
                         box_list.append((left, top, right, bottom))
                         filename_list.append(image_path)
                         score_list.append(scores[i])
@@ -198,6 +212,8 @@ def infer_phase_1(vis=False):
 
                     else:
                         break
+
+    print("Total images:", ctr)
 
     return resized_image_list, box_list, filename_list, image_list, score_list
 
@@ -230,9 +246,24 @@ def pipeline(vis=False):
         for i, resized_image in enumerate(resized_image_list):
             box = box_list[i]
             score_ = new_score_list[i][classes_list[i]]
+            class_ = classes_list[i]
             str_ = '%s %d %d %d %d %d %f\n' % (
-                filename_list[i], int(box[0]), int(box[1]), int(box[2]), int(box[3]), classes_list[i], score_)
+                filename_list[i], int(box[0]), int(box[1]), int(box[2]), int(box[3]), class_,
+                score_)
             ans_writer.write(str_.encode())
+
+        # for i, image in enumerate(image_list):
+        #     print(i, filename_list[i])
+        #     filename = filename_list[i].replace(os.path.sep, '/').split("/")[-1]
+        #     box = box_list[i]
+        #     score_ = new_score_list[i][classes_list[i]]
+        #
+        #     class_ = "L" if classes_list[i] == 0 else "R"
+        #
+        #     draw_bounding_box_on_image(image, int(box[1]), int(box[0]), int(box[3]), int(box[2]),
+        #                                color=CLASS_TO_COLOR[class_], use_normalized_coordinates=False,
+        #                                display_str_list=[class_ + ": {0:.3f}, {1:.3f}".format(score_list[i], score_)])
+        #     skimage.io.imsave("./outputs/{}.jpg".format(filename), image)
 
         score, err = judger_hand.judge()
         if err is not None:  # in case we failed to judge your submission
@@ -257,7 +288,6 @@ def pipeline(vis=False):
 
 
 import argparse
-from random import shuffle
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
