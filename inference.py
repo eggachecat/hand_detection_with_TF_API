@@ -120,6 +120,9 @@ def cal_area(a, b=None):
             return 0
 
 
+KEEP_ASPECT_RATIO = True
+
+
 def infer_phase_1(vis=False):
     tf.reset_default_graph()
     # ## Load a (frozen) Tensorflow model into memory.
@@ -160,7 +163,7 @@ def infer_phase_1(vis=False):
 
                 boxes = boxes[0]
                 scores = scores[0]
-                threshold = scores[top_rank] #0.01 if scores[top_rank] < 0.01 else scores[top_rank]
+                threshold = 0.00005 if scores[top_rank] < 0.00005 else scores[top_rank]
 
                 im_width, im_height = image.size
 
@@ -195,19 +198,21 @@ def infer_phase_1(vis=False):
                         if not counted:
                             ctr += 1
                             counted = True
-
-                        # size = (64, 64)
-                        # cropped = image.crop(box_)
-                        # cropped.thumbnail(size, Image.ANTIALIAS)
-                        # background = Image.new('RGB', size, (0, 0, 0))
-                        # background.paste(
-                        #     cropped, (int((size[0] - cropped.size[0]) / 2), int((size[1] - cropped.size[1]) / 2))
-                        # )
-                        # resized_image_list.append(load_image_into_numpy_array(background))
-
-                        resized_image_list.append(load_image_into_numpy_array(image.crop(
-                            (box_[0] - 15, box_[1] - 15, box_[2] + 15, box_[3] + 15)
-                        ).resize((64, 64))))
+                        if KEEP_ASPECT_RATIO:
+                            size = (64, 64)
+                            cropped = image.crop(
+                                (box_[0] - 5, box_[1] - 5, box_[2] + 5, box_[3] + 5)
+                            )
+                            cropped.thumbnail(size, Image.ANTIALIAS)
+                            background = Image.new('RGB', size, (0, 0, 0))
+                            background.paste(
+                                cropped, (int((size[0] - cropped.size[0]) / 2), int((size[1] - cropped.size[1]) / 2))
+                            )
+                            resized_image_list.append(load_image_into_numpy_array(background))
+                        else:
+                            resized_image_list.append(load_image_into_numpy_array(image.crop(
+                                (box_[0] - 15, box_[1] - 15, box_[2] + 15, box_[3] + 15)
+                            ).resize((64, 64))))
 
                         box_list.append((left, top, right, bottom))
                         filename_list.append(image_path)
@@ -253,7 +258,7 @@ def pipeline(vis=False):
             class_ = classes_list[i]
             str_ = '%s %d %d %d %d %d %f\n' % (
                 filename_list[i], int(box[0]), int(box[1]), int(box[2]), int(box[3]), class_,
-                score_)
+                score_list[i])
             ans_writer.write(str_.encode())
 
         # for i, image in enumerate(image_list):

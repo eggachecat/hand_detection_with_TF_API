@@ -23,7 +23,7 @@ def load_data():
     return (np.array(x_train), np.array(y_train)), (np.array(x_test), np.array(y_test))
 
 
-batch_size = 16
+batch_size = 64
 v_batch_size = 128
 
 num_classes = 2
@@ -75,29 +75,36 @@ model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.25))
 
-model.add(Conv2D(256, (3, 3), padding='same'))
-model.add(Activation('relu'))
-model.add(Conv2D(256, (3, 3)))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.25))
+# model.add(Conv2D(256, (3, 3), padding='same'))
+# model.add(Activation('relu'))
+# model.add(Conv2D(256, (3, 3)))
+# model.add(Activation('relu'))
+# model.add(MaxPooling2D(pool_size=(2, 2)))
+# model.add(Dropout(0.25))
 
 
 model.add(Flatten())
 # model.add(Dense(1024))
 # model.add(Activation('relu'))
 # model.add(Dropout(0.25))
-# model.add(Dense(512))
-# model.add(Activation('relu'))
-# model.add(Dropout(0.25))
-model.add(Dense(256))
+model.add(Dense(512))
 model.add(Activation('relu'))
 model.add(Dropout(0.25))
+# model.add(Dense(256))
+# model.add(Activation('relu'))
+# model.add(Dropout(0.25))
 model.add(Dense(num_classes))
 model.add(Activation('softmax'))
 
+import os.path
+
+model_name = "./data/hand_classification_model.h5"
+if os.path.isfile(model_name):
+  print("loading model...")
+  model = keras.models.load_model(model_name)
+
 # initiate RMSprop optimizer
-opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
+opt = keras.optimizers.Adam(lr=0.0001)
 
 # Let's train the model using RMSprop
 model.compile(loss='categorical_crossentropy',
@@ -112,8 +119,8 @@ x_test /= 255
 checkpointer = keras.callbacks.ModelCheckpoint(model_path, monitor='val_loss', verbose=0, save_best_only=True,
                                                save_weights_only=False, mode='auto', period=1)
 
-train_image_generator = ImageDataGenerator(rotation_range=45, width_shift_range=0.1, height_shift_range=0.1, zoom_range=0.1)
-validation_image_generator = ImageDataGenerator(rotation_range=45, width_shift_range=0.1, height_shift_range=0.1, zoom_range=0.1)
+train_image_generator = ImageDataGenerator(rotation_range=90, width_shift_range=0.1, height_shift_range=0.1, zoom_range=0.1)
+validation_image_generator = ImageDataGenerator(rotation_range=90, width_shift_range=0.1, height_shift_range=0.1, zoom_range=0.1)
 
 model.fit_generator(train_image_generator.flow(x_train, y_train, batch_size=batch_size),
                     epochs=epochs, steps_per_epoch=len(x_train) // batch_size,

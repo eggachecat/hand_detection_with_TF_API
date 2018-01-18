@@ -112,6 +112,8 @@ data_counter = 0
 def create_classification(config, path, folder):
     global data_counter
 
+    # img = skimage.io.imread(os.path.join(path, '{}'.format(config["filename"])))
+    # width, height = img.shape[1], img.shape[0]
     if FIX_ASPECT_RATIO:
         img = Image.open(os.path.join(path, '{}'.format(config["filename"])))
         width, height = img.size
@@ -126,24 +128,35 @@ def create_classification(config, path, folder):
         ymins = value[1]
         ymaxs = value[3]
 
-        if xmins < 0 or xmaxs > width or ymins < 0 or ymaxs > height:
-            continue
+        for i in range(1, 4):
 
-    if FIX_ASPECT_RATIO:
-        cropped = img.crop((xmins, ymins, xmaxs, ymaxs))
-        size = (64, 64)
-        cropped.thumbnail(size, Image.ANTIALIAS)
-        background = Image.new('RGB', size, (0, 0, 0))
-        background.paste(
-            cropped, (int((size[0] - cropped.size[0]) / 2), int((size[1] - cropped.size[1]) / 2))
-        )
-        background.save(os.path.join(folder, "{}-{}.jpg".format(data_counter, key)))
-    else:
-        cropped = img[ymins:ymaxs, xmins:xmaxs]
-        resized = skimage.transform.resize(cropped, (64, 64), mode="constant")
-        scipy.misc.imsave(os.path.join(folder, "{}-{}.jpg".format(data_counter, key)), resized)
+            xmins -= i * 5
+            ymins -= i * 5
+            xmaxs += i * 5
+            ymaxs += i * 5
 
-        data_counter += 1
+            if xmins < 0 or xmaxs > width or ymins < 0 or ymaxs > height:
+                continue
+
+            # cropped = img[ymins:ymaxs, xmins:xmaxs]
+            # resized = skimage.transform.resize(cropped, (64, 64), mode="constant")
+            # scipy.misc.imsave(os.path.join(folder, "{}-{}.jpg".format(data_counter, key)), resized)
+            # data_counter += 1
+            if FIX_ASPECT_RATIO:
+                cropped = img.crop((xmins, ymins, xmaxs, ymaxs))
+                size = (64, 64)
+                cropped.thumbnail(size, Image.ANTIALIAS)
+                background = Image.new('RGB', size, (0, 0, 0))
+                background.paste(
+                    cropped, (int((size[0] - cropped.size[0]) / 2), int((size[1] - cropped.size[1]) / 2))
+                )
+                background.save(os.path.join(folder, "{}-{}.jpg".format(data_counter, key)))
+                data_counter += 1
+            else:
+                cropped = img[ymins:ymaxs, xmins:xmaxs]
+                resized = skimage.transform.resize(cropped, (64, 64), mode="constant")
+                scipy.misc.imsave(os.path.join(folder, "{}-{}.jpg".format(data_counter, key)), resized)
+                data_counter += 1
 
 
 def generate_classification_data():
@@ -184,7 +197,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('data_path', type=str, help="parent path of data e.g. D://data//htc")
     parser.add_argument('--path_type', type=int, default=0, help='path_type')
-    parser.add_argument('--fix_ratio', type=bool, default=False, help='path_type')
+    parser.add_argument('--fixed_aspect_ratio', type=bool, default=True, help='path_type')
 
     args = parser.parse_args()
     try:
@@ -192,7 +205,7 @@ if __name__ == '__main__':
     except:
         print("Need data path!!")
 
-    FIX_ASPECT_RATIO = args.fix_ratio
+    FIX_ASPECT_RATIO = args.fixed_aspect_ratio
 
     if args.path_type == 0:
         generate_paths_0()
